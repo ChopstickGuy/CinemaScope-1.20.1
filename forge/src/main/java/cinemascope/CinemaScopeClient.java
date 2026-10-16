@@ -1,9 +1,12 @@
 package cinemascope;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
@@ -24,6 +27,9 @@ public final class CinemaScopeClient {
     private static double linearProgress;
     private static long lastFrameNanos = -1L;
     private static boolean previousSmoothCamera;
+    /** Set while we have switched on vanilla's F1 "hide GUI" to hide the HUD. */
+    private static boolean hidingGui;
+    private static boolean previousHideGui;
 
     private CinemaScopeClient() {
     }
@@ -43,6 +49,7 @@ public final class CinemaScopeClient {
                 setActive(mc, false);
             }
             linearProgress = 0.0D;
+            updateHideGui(mc);
             return;
         }
         while (TOGGLE_KEY.consumeClick()) {
@@ -62,12 +69,36 @@ public final class CinemaScopeClient {
         }
     }
 
-    /** Advances the animation once per rendered frame. */
+    /**
+     * Hides the HUD through vanilla's F1 switch rather than cancelling individual overlays, so HUD
+     * elements that mods draw outside Forge's overlay system disappear too.
+     */
+    private static void updateHideGui(Minecraft mc) {
+        boolean shouldHide = CinemaScopeConfig.get().hideHud && isEngaged();
+        if (shouldHide && !hidingGui) {
+            previousHideGui = mc.options.hideGui;
+            mc.options.hideGui = true;
+            hidingGui = true;
+        } else if (!shouldHide && hidingGui) {
+            mc.options.hideGui = previousHideGui;
+            hidingGui = false;
+        }
+    }
+
     @SubscribeEvent
     public static void onRenderTick(TickEvent.RenderTickEvent event) {
-        if (event.phase != TickEvent.Phase.START) {
-            return;
+        Minecraft mc = Minecraft.getInstance();
+        if (event.phase == TickEvent.Phase.START) {
+            advanceAnimation();
+            updateHideGui(mc);
+        } else if (mc.options.hideGui && mc.screen == null && mc.level != null && isEngaged()) {
+            // With F1 active and no screen open the GUI pass is skipped entirely,
+            // so draw the bars on top of the finished frame instead.
+            drawBarsStandalone(mc);
         }
+    }
+
+    private static void advanceAnimation() {
         long now = System.nanoTime();
         double dt = lastFrameNanos < 0 ? 0.0D : (now - lastFrameNanos) / 1.0E9D;
         lastFrameNanos = now;
@@ -113,14 +144,33 @@ public final class CinemaScopeClient {
         }
     }
 
-    /** Draws the sliding letterbox bars before the HUD, so open screens stay on top. */
+    /** Draws the bars in the GUI pass (runs when a screen is open or the HUD isn't hidden), below the screen. */
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Pre event) {
-        if (!isEngaged() || Minecraft.getInstance().level == null) {
-            return;
+        if (isEngaged() && Minecraft.getInstance().level != null) {
+            drawBars(event.getGuiGraphics());
         }
+    }
+
+    /** Sets up the same GUI projection GameRenderer uses, then draws the bars. */
+    private static void drawBarsStandalone(Minecraft mc) {
+        PoseStack modelView = RenderSystem.getModelViewStack();
+        modelView.pushPose();
+        modelView.setIdentity();
+        modelView.translate(0.0D, 0.0D, 1000.0D - ForgeHooksClient.getGuiFarPlane());
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.clear(256, Minecraft.ON_OSX);
+
+        GuiGraphics graphics = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
+        drawBars(graphics);
+        graphics.flush();
+
+        modelView.popPose();
+        RenderSystem.applyModelViewMatrix();
+    }
+
+    private static void drawBars(GuiGraphics graphics) {
         CinemaScopeConfig config = CinemaScopeConfig.get();
-        GuiGraphics graphics = event.getGuiGraphics();
 
         int w = graphics.guiWidth();
         int h = graphics.guiHeight();
