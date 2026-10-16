@@ -1,0 +1,30 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "MIT"
+
+[[mods]]
+modId = "cinema_scope"
+version = "${version}"
+displayName = "Cinema Scope"
+authors = "heconis (original), ChopstickGuy (1.20.1 port)"
+logoFile = "cinema_scope.png"
+description = '''
+Cinematic mode: press K to hide the HUD, slide in letterbox bars and zoom in smoothly.
+Based on CinemaScope by heconis (MIT).
+'''
+# Client-only: servers don't need it and clients without it can still join.
+displayTest = "IGNORE_ALL_VERSION"
+
+[[dependencies.cinema_scope]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.cinema_scope]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,1.20.2)"
+ordering = "NONE"
+side = "CLIENT"

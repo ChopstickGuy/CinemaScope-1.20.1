@@ -1,6 +1,8 @@
 # Cinema Scope (1.20.1)
 
-Port of [CinemaScope by heconis](https://github.com/heconis/CinemaScope) to **Minecraft 1.20.1 (Fabric)**, extended with a full cinematic mode.
+Port of [CinemaScope by heconis](https://github.com/heconis/CinemaScope) to **Minecraft 1.20.1** for **Fabric** and **Forge**, extended with a full cinematic mode.
+
+Download the jar for your loader from the [Releases](../../releases) page. The mod is client-side only — servers don't need it.
 
 Press **K** (rebindable under Controls → "Cinema Scope"):
 
@@ -16,8 +18,8 @@ Works with any screen ratio (16:9, 16:10, 4:3, 21:9, …): the bars are computed
 ## Requirements
 
 - Minecraft 1.20.1
-- Fabric Loader ≥ 0.14.21
-- Fabric API
+- **Fabric:** Fabric Loader ≥ 0.14.21 and Fabric API
+- **Forge:** Forge 47.x
 
 ## Config
 
@@ -36,10 +38,11 @@ Works with any screen ratio (16:9, 16:10, 4:3, 21:9, …): the bars are computed
 ## Building
 
 ```
+cd fabric   # or: cd forge
 ./gradlew build
 ```
 
-The jar ends up in `build/libs/`.
+The jar ends up in `build/libs/`. The Forge build needs a Java 17 toolchain (downloaded automatically if missing).
 
 ## License
 
